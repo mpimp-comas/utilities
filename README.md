@@ -5,7 +5,7 @@ This repo is a collection of various common utilities for working with Python, c
 ## Content
 
 ### Notebooks
-* sqlite_sss.ipynb: Create a local SQLite database from Pandas dataframes and extend with a function for substructure searchin (apahl; Notebook)
+* [sqlite_sss.ipynb](notebooks/sqlite_sss.ipynb): Create a local SQLite database from Pandas dataframes and extend with a function for substructure searchin (apahl; Notebook)
 
 ### Python Scripts
 * stand_struct.py: A Python script for standardizing structure files. The input can be either SD files OR CSV or TSV files which contain the structures as `Smiles`. 
