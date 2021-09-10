@@ -1,0 +1,11 @@
+__pycache__/
+python_scripts/__pycache__/
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
+.vscode/
+notebooks/example.sqlite
+*.pkl
+*.mrv
+*.mol
+*.pyc
+tags
