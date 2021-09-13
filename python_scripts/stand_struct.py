@@ -23,10 +23,17 @@ from rdkit.Chem.MolStandardize.fragment import LargestFragmentChooser
 from rdkit.Chem.MolStandardize.standardize import Standardizer
 from rdkit.Chem.MolStandardize.tautomer import TautomerCanonicalizer
 
+from rdkit import RDLogger
+
+LOG = RDLogger.logger()
+LOG.setLevel(RDLogger.CRITICAL)
+
 
 def get_value(str_val):
     """convert a string into float or int, if possible."""
     if not str_val:
+        return ""
+    if str_val is None:
         return ""
     try:
         val = float(str_val)
