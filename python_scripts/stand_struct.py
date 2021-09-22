@@ -204,9 +204,7 @@ def process(
                 file_obj = open(f, "r")
             reader = csv_supplier(file_obj, dialect="excel-tab")
         else:
-            raise ValueError(f"Unknown input file format: {fn}")
-        if f.endswith(".gz"):
-            file_obj = gzip.open(f, mode="rb")
+            raise ValueError(f"Unknown input file format: {f}")
 
         for rec in reader:
             ctr["In"] += 1
