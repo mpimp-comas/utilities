@@ -14,6 +14,7 @@ import gzip
 import csv
 import argparse
 
+
 from rdkit.Chem import AllChem as Chem
 from rdkit.Chem import Mol
 import rdkit.Chem.Descriptors as Desc
@@ -324,15 +325,21 @@ def process(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description=(
-            "Standardize structures. Input files can be CSV, TSV with the structures in a `Smiles` column"
-            "or an SD file. The files may be gzipped."
-            "All entries with failed molecules will be removed. "
-            "By default, duplicate entries will be removed by InChIKey (can be turned off with the `--keep_dupl` option) "
-            "and structure canoncalization will be performed (can be turned off with the `--nocanon`option). "
-            "Omitting structure canonicalization drastically improves the performance. "
-            "The output will be a tab-separated text file with SMILES. "
-        )
+        description="""
+Standardize structures. Input files can be CSV, TSV with the structures in a `Smiles` column
+or an SD file. The files may be gzipped.
+All entries with failed molecules will be removed.
+By default, duplicate entries will be removed by InChIKey (can be turned off with the `--keep_dupl` option)
+and structure canonicalization will be performed (can be turned off with the `--nocanon`option).
+Omitting structure canonicalization drastically improves the performance.
+The output will be a tab-separated text file with SMILES.
+
+Example:
+Standardize the ChEMBL SDF download (gzipped), keep only MedChem atoms
+and molecules between 3-50 heavy atoms, do not perform canonicalization:
+    `$ ./stand_struct.py chembl_29.sdf.gz medchemrac --nocanon`
+            """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "in_file", help="The optionally gzipped input file (CSV, TSV or SDF)."
