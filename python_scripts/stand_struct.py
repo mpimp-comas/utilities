@@ -197,7 +197,7 @@ def process(
     else:
         columns = set()
     header = []
-    ctr = {x: 0 for x in ["In", "Out", "Fail_NoMol", "Duplicates", "Filter", "TimeOut"]}
+    ctr = {x: 0 for x in ["In", "Out", "Fail_NoMol", "Duplicates", "Filter", "Timeout"]}
     first_mol = True
     sd_props = set()
     inchi_keys = set()
@@ -314,7 +314,7 @@ def process(
                     timed_out = False
                 if timed_out:
                     ctr[
-                        "TimeOut"
+                        "Timeout"
                     ] += 1  # increase the counter but do not fail the entry
                     mol = mol_copy  # instead, restore from the copy
                 if mol is None:
