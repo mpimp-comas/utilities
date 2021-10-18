@@ -12,8 +12,10 @@ Standardize and filter SD files, e.g. the ChEMBL dataset."""
 import sys
 import gzip
 import csv
+from copy import deepcopy
 import argparse
-
+import signal
+from contextlib import contextmanager
 
 from rdkit.Chem import AllChem as Chem
 from rdkit.Chem import Mol
@@ -28,6 +30,29 @@ from rdkit import RDLogger
 
 LOG = RDLogger.logger()
 LOG.setLevel(RDLogger.CRITICAL)
+
+
+# Timeout code is taken from José's NPFC project:
+# https://github.com/mpimp-comas/npfc/blob/master/npfc/utils.py
+def raise_timeout(signum, frame):
+    """Function to actually raise the TimeoutError when the time has come."""
+    raise TimeoutError
+
+
+@contextmanager
+def timeout(time):
+    # register a function to raise a TimeoutError on the signal.
+    signal.signal(signal.SIGALRM, raise_timeout)
+    # schedule the signal to be sent after time
+    signal.alarm(time)
+    # run the code block within the with statement
+    try:
+        yield
+    except TimeoutError:
+        pass  # exit the with statement
+    finally:
+        # unregister the signal so it won't be triggered if the timeout is not reached
+        signal.signal(signal.SIGALRM, signal.SIG_IGN)
 
 
 def get_value(str_val):
@@ -172,7 +197,7 @@ def process(
     else:
         columns = set()
     header = []
-    ctr = {x: 0 for x in ["In", "Out", "Fail_NoMol", "Duplicates", "Filter"]}
+    ctr = {x: 0 for x in ["In", "Out", "Fail_NoMol", "Duplicates", "Filter", "TimeOut"]}
     first_mol = True
     sd_props = set()
     inchi_keys = set()
@@ -282,7 +307,16 @@ def process(
 
             if canon:
                 # Late canonicalization, because it is so expensive:
-                mol = molvs_t.canonicalize(mol)
+                mol_copy = deepcopy(mol)  # copy the mol to restore it after a timeout
+                timed_out = True
+                with timeout(2):
+                    mol = molvs_t.canonicalize(mol)
+                    timed_out = False
+                if timed_out:
+                    ctr[
+                        "TimeOut"
+                    ] += 1  # increase the counter but do not fail the entry
+                    mol = mol_copy  # instead, restore from the copy
                 if mol is None:
                     ctr["Fail_NoMol"] += 1
                     continue
@@ -308,7 +342,7 @@ def process(
             if ctr["In"] % 1000 == 0:
                 print(
                     f"  In: {ctr['In']:8d}  Out: {ctr['Out']: 8d}  Failed: {ctr['Fail_NoMol']:6d}  "
-                    f"Dupl: {ctr['Duplicates']:6d}  Filt: {ctr['Filter']:6d}       ",
+                    f"Dupl: {ctr['Duplicates']:6d}  Filt: {ctr['Filter']:6d}  Timeout: {ctr['Timeout']:6d}       ",
                     end="\r",
                 )
                 sys.stdout.flush()
@@ -318,7 +352,7 @@ def process(
     outfile.close()
     print(
         f"  In: {ctr['In']:8d}  Out: {ctr['Out']: 8d}  Failed: {ctr['Fail_NoMol']:6d}  "
-        f"Dupl: {ctr['Duplicates']:6d}  Filt: {ctr['Filter']:6d}       "
+        f"Dupl: {ctr['Duplicates']:6d}  Filt: {ctr['Filter']:6d}  Timeout: {ctr['Timeout']:6d}       "
     )
     print("")
 
@@ -330,7 +364,9 @@ Standardize structures. Input files can be CSV, TSV with the structures in a `Sm
 or an SD file. The files may be gzipped.
 All entries with failed molecules will be removed.
 By default, duplicate entries will be removed by InChIKey (can be turned off with the `--keep_dupl` option)
-and structure canonicalization will be performed (can be turned off with the `--nocanon`option).
+and structure canonicalization will be performed (can be turned off with the `--nocanon`option),
+where a timeout is enforced on the canonicalization if it takes longer than 2 seconds per structures.
+Timed-out structures will be restored to their status before canonicalization.
 Omitting structure canonicalization drastically improves the performance.
 The output will be a tab-separated text file with SMILES.
 
