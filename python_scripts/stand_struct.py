@@ -164,8 +164,8 @@ def sdf_supplier(fo):
 
 
 def process(
-    fn,
-    out_type,
+    fn: str,
+    out_type: str,
     canon: bool,
     columns: str,  # comma separated list of columns to keep
     min_heavy_atoms,
@@ -201,8 +201,7 @@ def process(
     first_mol = True
     sd_props = set()
     inchi_keys = set()
-    if not isinstance(fn, list):
-        fn = [fn]
+    fn = fn.split(",")  # allow comma separated list of files
     first_dot = fn[0].find(".")
     fn_base = fn[0][:first_dot]
     out_fn = f"{fn_base}_{out_type}{canon_str}{dupl_str}{min_ha_str}{max_ha_str}.tsv"
@@ -420,7 +419,6 @@ and molecules between 3-50 heavy atoms, do not perform canonicalization:
         help="Comma-separated list of columns to keep (default: all).",
     )
     args = parser.parse_args()
-    args.in_file = args.in_file.split(",")
     print(args)
     process(
         args.in_file,
