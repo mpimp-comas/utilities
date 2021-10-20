@@ -378,7 +378,8 @@ and molecules between 3-50 heavy atoms, do not perform canonicalization:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
-        "in_file", help="The optionally gzipped input file (CSV, TSV or SDF)."
+        "in_file",
+        help="The optionally gzipped input file (CSV, TSV or SDF). Can also be a comma-separated list of file names.",
     )
     parser.add_argument(
         "output_type",
@@ -419,6 +420,7 @@ and molecules between 3-50 heavy atoms, do not perform canonicalization:
         help="Comma-separated list of columns to keep (default: all).",
     )
     args = parser.parse_args()
+    args.in_file = args.in_file.split(",")
     print(args)
     process(
         args.in_file,
