@@ -297,7 +297,11 @@ def process(
             if not canon:
                 # When canonicalization is not performed,
                 # we can check for duplicates already here:
-                inchi = Chem.inchi.MolToInchiKey(mol)
+                try:
+                    inchi = Chem.inchi.MolToInchiKey(mol)
+                except:
+                    ctr["Fail_NoMol"] += 1
+                    continue
                 if not keep_dupl:
                     if inchi in inchi_keys:
                         ctr["Duplicates"] += 1
@@ -329,7 +333,7 @@ def process(
                     try:
                         mol = molvs_t.canonicalize(mol)
                     except:
-                        # in case of a tautomerism error, restore original mol
+                        # in case of a canonicalization error, restore original mol
                         mol = mol_copy
                     timed_out = False
                 if timed_out:
@@ -340,7 +344,11 @@ def process(
                 if mol is None:
                     ctr["Fail_NoMol"] += 1
                     continue
-                inchi = Chem.inchi.MolToInchiKey(mol)
+                try:
+                    inchi = Chem.inchi.MolToInchiKey(mol)
+                except:
+                    ctr["Fail_NoMol"] += 1
+                    continue
                 if not keep_dupl:
                     # When canonicalization IS performed,
                     # we have to check for duplicates now:
