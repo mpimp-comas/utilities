@@ -14,15 +14,17 @@ The output is always a TSV file, various options are available, please have a lo
 #### Usage
 
 ```
-$ ./stand_struct.py --help
-usage: stand_struct [-h] [--nocanon] [--min_heavy_atoms MIN_HEAVY_ATOMS] [--max_heavy_atoms MAX_HEAVY_ATOMS] [-d] [-c COLUMNS]
-                    in_file {full,fullrac,medchem,medchemrac}
+$ stand_struct --help
+usage: stand_struct [-h] [--nocanon] [--min_heavy_atoms MIN_HEAVY_ATOMS] [--max_heavy_atoms MAX_HEAVY_ATOMS] [-d] [-c COLUMNS] [-n N] [-v]
+                    in_file {full,fullrac,medchem,medchemrac,fullmurcko,medchemmurcko}
 
 Standardize structures. Input files can be CSV, TSV with the structures in a `Smiles` column
 or an SD file. The files may be gzipped.
 All entries with failed molecules will be removed.
 By default, duplicate entries will be removed by InChIKey (can be turned off with the `--keep_dupl` option)
-and structure canonicalization will be performed (can be turned off with the `--nocanon`option).
+and structure canonicalization will be performed (can be turned off with the `--nocanon`option),
+where a timeout is enforced on the canonicalization if it takes longer than 2 seconds per structure.
+Timed-out structures WILL NOT BE REMOVED, they are kept in their state before canonicalization.
 Omitting structure canonicalization drastically improves the performance.
 The output will be a tab-separated text file with SMILES.
 
@@ -33,10 +35,13 @@ and molecules between 3-50 heavy atoms, do not perform canonicalization:
             
 
 positional arguments:
-  in_file               The optionally gzipped input file (CSV, TSV or SDF).
-  {full,fullrac,medchem,medchemrac}
-                        The output type. 'full': Full dataset, only standardized; 'fullrac': Like 'full', but with stereochemistry removed; 'medchem':
-                        Dataset with MedChem filters applied; 'medchemrac': Like 'medchem', but with stereochemistry removed;
+  in_file               The optionally gzipped input file (CSV, TSV or SDF). Can also be a comma-separated list of file names.
+  {full,fullrac,medchem,medchemrac,fullmurcko,medchemmurcko}
+                        The output type. 'full': Full dataset, only standardized; 'fullrac': Like 'full', but with stereochemistry removed; 'fullmurcko':
+                        Like 'fullrac', structures are reduced to their Murcko scaffolds; 'medchem': Dataset with MedChem filters applied, bounds for the
+                        number of heavy atoms can be optionally given; 'medchemrac': Like 'medchem', but with stereochemistry removed; 'medchemmurcko':
+                        Like 'medchemrac', structures are reduced to their Murcko scaffolds; (all filters, canonicalization and duplicate checks are
+                        applied after Murcko generation).
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -49,5 +54,7 @@ optional arguments:
                         Keep duplicates.
   -c COLUMNS, --columns COLUMNS
                         Comma-separated list of columns to keep (default: all).
-```
+  -n N                  Show info every `N` records (default: 1000).
+  -v                    Turn on verbose status output.
+  ```
 

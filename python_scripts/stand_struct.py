@@ -173,6 +173,7 @@ def process(
     max_heavy_atoms: int,
     keep_dupl: bool,
     verbose: bool,
+    every_n: int,
 ):
     medchem_atoms = {1, 5, 6, 7, 8, 9, 15, 16, 17, 35, 53}  # 5: Boron
     molvs_s = Standardizer()
@@ -367,7 +368,7 @@ def process(
             line = [str(d[x]) for x in header]
             outfile.write("\t".join(line) + "\n")
 
-            if ctr["In"] % 1000 == 0:
+            if ctr["In"] % every_n == 0:
                 print(
                     f"{fn_info}  In: {ctr['In']:8d}  Out: {ctr['Out']: 8d}  Failed: {ctr['Fail_NoMol']:6d}  "
                     f"Dupl: {ctr['Duplicates']:6d}  Filt: {ctr['Filter']:6d}  Timeout: {ctr['Timeout']:6d}       ",
@@ -458,6 +459,12 @@ and molecules between 3-50 heavy atoms, do not perform canonicalization:
         help="Comma-separated list of columns to keep (default: all).",
     )
     parser.add_argument(
+        "-n",
+        type=int,
+        default=1000,
+        help="Show info every `N` records (default: 1000).",
+    )
+    parser.add_argument(
         "-v",
         action="store_true",
         help="Turn on verbose status output.",
@@ -473,4 +480,5 @@ and molecules between 3-50 heavy atoms, do not perform canonicalization:
         args.max_heavy_atoms,
         args.keep_duplicates,
         args.v,
+        args.n,
     )
