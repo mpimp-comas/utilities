@@ -326,7 +326,11 @@ def process(
                 mol_copy = deepcopy(mol)  # copy the mol to restore it after a timeout
                 timed_out = True
                 with timeout(2):
-                    mol = molvs_t.canonicalize(mol)
+                    try:
+                        mol = molvs_t.canonicalize(mol)
+                    except:
+                        # in case of a tautomerism error, restore original mol
+                        mol = mol_copy
                     timed_out = False
                 if timed_out:
                     ctr[
