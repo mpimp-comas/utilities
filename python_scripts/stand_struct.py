@@ -20,6 +20,7 @@ from contextlib import contextmanager
 from rdkit.Chem import AllChem as Chem
 from rdkit.Chem import Mol
 import rdkit.Chem.Descriptors as Desc
+from rdkit.Chem.Scaffolds import MurckoScaffold
 
 from rdkit.Chem.MolStandardize.charge import Uncharger
 from rdkit.Chem.MolStandardize.fragment import LargestFragmentChooser
@@ -168,9 +169,10 @@ def process(
     out_type: str,
     canon: bool,
     columns: str,  # comma separated list of columns to keep
-    min_heavy_atoms,
-    max_heavy_atoms,
-    keep_dupl,
+    min_heavy_atoms: int,
+    max_heavy_atoms: int,
+    keep_dupl: bool,
+    verbose: bool,
 ):
     medchem_atoms = {1, 5, 6, 7, 8, 9, 15, 16, 17, 35, 53}  # 5: Boron
     molvs_s = Standardizer()
@@ -207,6 +209,14 @@ def process(
     out_fn = f"{fn_base}_{out_type}{canon_str}{dupl_str}{min_ha_str}{max_ha_str}.tsv"
     outfile = open(out_fn, "w")
     # Initialize reader for the correct input type
+
+    if verbose:
+        # Add file name info and print newline after each info line.
+        fn_info = f"({fn_base})"
+        end_char = "\n"
+    else:
+        fn_info = ""
+        end_char = "\r"
 
     for f in fn:
         do_close = True
@@ -271,11 +281,18 @@ def process(
                 ctr["Fail_NoMol"] += 1
                 continue
 
-            if "rac" in out_type:
+            # "murcko" implies "rac"
+            if "rac" in out_type or "murcko" in out_type:
                 mol = molvs_s.stereo_parent(mol)
             if mol is None:
                 ctr["Fail_NoMol"] += 1
                 continue
+
+            if "murcko" in out_type:
+                mol = MurckoScaffold.GetScaffoldForMol(mol)
+                if mol is None:
+                    ctr["Fail_NoMol"] += 1
+                    continue
 
             if not canon:
                 # When canonicalization is not performed,
@@ -340,9 +357,9 @@ def process(
 
             if ctr["In"] % 1000 == 0:
                 print(
-                    f"  In: {ctr['In']:8d}  Out: {ctr['Out']: 8d}  Failed: {ctr['Fail_NoMol']:6d}  "
+                    f"{fn_info}  In: {ctr['In']:8d}  Out: {ctr['Out']: 8d}  Failed: {ctr['Fail_NoMol']:6d}  "
                     f"Dupl: {ctr['Duplicates']:6d}  Filt: {ctr['Filter']:6d}  Timeout: {ctr['Timeout']:6d}       ",
-                    end="\r",
+                    end=end_char,
                 )
                 sys.stdout.flush()
 
@@ -350,7 +367,7 @@ def process(
             file_obj.close()
     outfile.close()
     print(
-        f"  In: {ctr['In']:8d}  Out: {ctr['Out']: 8d}  Failed: {ctr['Fail_NoMol']:6d}  "
+        f"{fn_info}  In: {ctr['In']:8d}  Out: {ctr['Out']: 8d}  Failed: {ctr['Fail_NoMol']:6d}  "
         f"Dupl: {ctr['Duplicates']:6d}  Filt: {ctr['Filter']:6d}  Timeout: {ctr['Timeout']:6d}       "
     )
     print("")
@@ -364,8 +381,8 @@ or an SD file. The files may be gzipped.
 All entries with failed molecules will be removed.
 By default, duplicate entries will be removed by InChIKey (can be turned off with the `--keep_dupl` option)
 and structure canonicalization will be performed (can be turned off with the `--nocanon`option),
-where a timeout is enforced on the canonicalization if it takes longer than 2 seconds per structures.
-Timed-out structures will be restored to their status before canonicalization.
+where a timeout is enforced on the canonicalization if it takes longer than 2 seconds per structure.
+Timed-out structures WILL NOT BE REMOVED, they are kept in their state before canonicalization.
 Omitting structure canonicalization drastically improves the performance.
 The output will be a tab-separated text file with SMILES.
 
@@ -382,13 +399,23 @@ and molecules between 3-50 heavy atoms, do not perform canonicalization:
     )
     parser.add_argument(
         "output_type",
-        choices=["full", "fullrac", "medchem", "medchemrac"],
+        choices=[
+            "full",
+            "fullrac",
+            "medchem",
+            "medchemrac",
+            "fullmurcko",
+            "medchemmurcko",
+        ],
         help=(
             "The output type. "
             "'full': Full dataset, only standardized; "
             "'fullrac': Like 'full', but with stereochemistry removed; "
-            "'medchem': Dataset with MedChem filters applied; "
+            "'fullmurcko': Like 'fullrac', structures are reduced to their Murcko scaffolds; "
+            "'medchem': Dataset with MedChem filters applied, bounds for the number of heavy atoms can be optionally given; "
             "'medchemrac': Like 'medchem', but with stereochemistry removed; "
+            "'medchemmurcko': Like 'medchemrac', structures are reduced to their Murcko scaffolds; "
+            "(all filters, canonicalization and duplicate checks are applied after Murcko generation)."
         ),
     )
     parser.add_argument(
@@ -418,6 +445,11 @@ and molecules between 3-50 heavy atoms, do not perform canonicalization:
         default="",
         help="Comma-separated list of columns to keep (default: all).",
     )
+    parser.add_argument(
+        "-v",
+        action="store_true",
+        help="Turn on verbose status output.",
+    )
     args = parser.parse_args()
     print(args)
     process(
@@ -428,4 +460,5 @@ and molecules between 3-50 heavy atoms, do not perform canonicalization:
         args.min_heavy_atoms,
         args.max_heavy_atoms,
         args.keep_duplicates,
+        args.v,
     )
